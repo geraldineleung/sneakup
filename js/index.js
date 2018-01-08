@@ -181,7 +181,7 @@ function update(){
   boy.body.data.shapes[0].sensor = true;
 
   girl.body.velocity.x = 0;
-  girl.body.velocity.y = 310;
+  girl.body.velocity.y = 30;
   girl.animations.play('down');
 
   // this.text.setText("Level: \nScore: ");
