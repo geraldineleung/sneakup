@@ -1,6 +1,8 @@
 var game = new Phaser.Game(685,700, Phaser.AUTO, '', {preload: preload, create:create, update:update, render:render});
-var hitbox1, hitbox2, hitbox3;
 var upBody, downBody, leftBody, rightBody;
+var hitboxArr = [];
+var ghostX, ghostY;
+
 function preload(){
   game.load.image('room', 'assets/room.png');
   game.load.spritesheet('boy', 'assets/george.png', 48, 48);
@@ -8,45 +10,20 @@ function preload(){
   game.load.spritesheet('ghost', 'assets/boo.png', 52, 40);
 }
 
-var hitboxArr = [];
-var boyX, boyY, ghostx, ghostY;
-var hitboxCollisionGroup, ghostCollisionGroup, boyCollisionGroup;
-
 function create(){
   // game.world.setBounds(0,0,685,700);
   game.physics.startSystem(Phaser.Physics.P2JS);
   game.add.sprite(0,0, 'room');
 
-  boyX = game.world.centerX;
-  boyY = game.world.centerY - 200;
+  boy1 = new human('boy', game.world.centerX, game.world.centerY - 200);
+  boy2 = new human('boy', game.world.centerX - 50, game.world.centerY - 250);
+
+  girl1 = new human('girl', game.world.centerX, game.world.centerY - 100);
+  girl2 = new human('girl', game.world.centerX + 50, game.world.centerY - 100);
+
   ghostX = 327;
   ghostY = 30;
 
-  boy = game.add.sprite(boyX, boyY, 'boy');
-  game.physics.p2.enable(boy, true);
-  //create triangular body shapes around boy sprite
-  boy.body.clearShapes();
-  upBody = [{"shape": [-15,-20, 60,-20, 25,50]}];
-  downBody = [{"shape": [25,0, 63,70, -13,70]}];
-  leftBody = [{"shape": [-30,-15, 40,25, -30,60]}];
-  rightBody = [{"shape": [0,25, 70,-15, 70,60]}];
-
-  //set up boy movements
-  boy.body.immovable = true;
-  boy.body.fixedRotation = true;
-  boy.animations.add('left', [1,5,9,13], 5, true);
-  boy.animations.add('right', [3,7,11,15], 5, true);
-  boy.animations.add('up', [2,6,10,14], 5, true);
-  boy.animations.add('down', [0,4,8,12], 5, true);
-
-  girl = game.add.sprite(game.world.centerX - 100, game.world.centerY - 100, 'girl');
-  game.physics.p2.enable(girl);
-  girl.body.immovable = true;
-  girl.animations.add('left', [1,5,9,13], 5, true);
-  girl.animations.add('right', [3,7,11,15], 5, true);
-  girl.animations.add('up', [2,6,10,14], 5, true);
-  girl.animations.add('down', [0,4,8,12], 5, true);
-  girl.body.fixedRotation = true;
 
   ghost = game.add.sprite(ghostX, ghostY, 'ghost');
   ghost.scale.setTo(0.6,0.6);
@@ -57,7 +34,7 @@ function create(){
   ghost.animations.add('up', [1], 10, true);
   ghost.animations.add('down', [0], 10, true);
   ghost.body.fixedRotation = true;
-  console.log(boy);
+  // console.log(boy);
   console.log(ghost);
 
   hitbox1 = game.add.graphics(100,470);
@@ -109,7 +86,7 @@ function create(){
   hitboxArr.push(hitbox12);
 
   for(var i=0; i<hitboxArr.length; i++){
-    game.physics.p2.enable(hitboxArr[i], true);
+    game.physics.p2.enable(hitboxArr[i], false);
     hitboxArr[i].body.static = true;
   }
   this.text = this.add.text(10, 10, "", {size: "12px", fill: (0,0,0), align:"center"});
@@ -140,49 +117,14 @@ function update(){
   else{
     ghost.animations.stop();
   }
-  boy.body.velocity.x = 0;
-  boy.body.velocity.y = 0;
 
-  if(boy.animations.play('up')){
-    boy.body.velocity.y = -50;//TODO testing
-    if(boy.currentBody != upBody){
-      boy.body.clearShapes();
-      boy.body.loadPolygon(null, upBody);
-    }
-    boy.currentBody = upBody;//saving some performance, here
-  }
-  else if(boy.animations.play('down')){
-    boy.body.velocity.y = 10;
-    if(boy.currentBody != downBody){
-      boy.body.clearShapes();
-      boy.body.loadPolygon(null, downBody);
-    }
-    boy.currentBody = downBody;
-  }
-  else if(boy.animations.play('left')){
-    boy.body.velocity.x = -10;
-    if(boy.currentBody != leftBody){
-      boy.body.clearShapes();
-      boy.body.loadPolygon(null, leftBody);
-    }
-    boy.currentBody = leftBody;
-  }
-  else if(boy.animations.play('right')){
-    boy.body.velocity.x = 10;
-    if(boy.currentBody != rightBody){
-      boy.body.clearShapes();
-      boy.body.loadPolygon(null, rightBody);
-    }
-    boy.currentBody = rightBody;
-  }
-  if(boy.body.data.shapes.length < 2){
-    boy.body.addRectangle(20,20);
-  }
-  boy.body.data.shapes[0].sensor = true;
+  boy1.update();
+  boy2.update();
 
-  girl.body.velocity.x = 0;
-  girl.body.velocity.y = 30;
-  girl.animations.play('down');
+  girl1.update();
+  girl2.update();
+
+  
 
   // this.text.setText("Level: \nScore: ");
 
@@ -194,5 +136,5 @@ function render(){
   //   // hitboxes.children[i].body.collides(ghostCollisionGroup);
   //   game.debug.body(hitboxes.children[i]);
   // }
-  game.debug.spriteInfo(ghost);
+  // game.debug.spriteInfo(ghost);
 }
