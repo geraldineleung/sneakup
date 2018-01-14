@@ -4,7 +4,7 @@ function human(type, humanX, humanY){
   this.humanY = humanY;
   this.speed = 10;
   this.direction = 'up';
-  this.defaultMTimer = Math.floor(Math.random() * 360) + 60;
+  this.defaultMTimer = Math.floor(Math.random() * 420) + 60;
   this.movementTimer = this.defaultMTimer;
 
   if(type == 'boy'){
@@ -13,10 +13,10 @@ function human(type, humanX, humanY){
   else if (type == 'girl') {
     this.sprite = game.add.sprite(humanX, humanY, 'girl');
   }
-  game.physics.p2.enable(this.sprite, true);
+  game.physics.p2.enable(this.sprite);
   //create triangular body shapes around boy sprite
   this.sprite.body.clearShapes();
-  upBody = [{"shape": [-15,-20, 60,-20, 25,50]}];
+  upBody = [{"shape": [-15,-30, 60,-30, 25,40]}];
   downBody = [{"shape": [25,0, 63,70, -13,70]}];
   leftBody = [{"shape": [-30,-15, 40,25, -30,60]}];
   rightBody = [{"shape": [0,25, 70,-15, 70,60]}];
@@ -30,7 +30,7 @@ function human(type, humanX, humanY){
   this.sprite.animations.add('down', [0,4,8,12], 5, true);
 
   this.randomizeDirection = function(){
-    var rnd = Math.floor(Math.random() * 3);
+    var rnd = Math.floor(Math.random() * 4);
 
     //randomly generate a number from 0 to 3, 0 would be up, 1 down, 2 left, 3 right
     if(rnd == 0){
@@ -93,7 +93,7 @@ function human(type, humanX, humanY){
     }
     //add a new body shape (rectangle) around human sprite
     if(this.sprite.body.data.shapes.length < 2){
-      this.sprite.body.addRectangle(20,20);
+      this.sprite.body.addRectangle(40,40);
     }
     //first boody shape (triangular) has a sensor
     this.sprite.body.data.shapes[0].sensor = true;

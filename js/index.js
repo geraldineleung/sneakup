@@ -1,29 +1,31 @@
 var game = new Phaser.Game(685,700, Phaser.AUTO, '', {preload: preload, create:create, update:update, render:render});
 var upBody, downBody, leftBody, rightBody;
-var hitboxArr = [];
+var hitboxArr = [], humanArr = [];
 var ghostX, ghostY;
+var ghostText, humanText, scoreText, levelText;
+var score = 0, level=1;
 
 function preload(){
   game.load.image('room', 'assets/room.png');
   game.load.spritesheet('boy', 'assets/george.png', 48, 48);
-  game.load.spritesheet('girl', 'assets/betty.png', 45, 48);
+  game.load.spritesheet('girl', 'assets/betty.png', 48, 48);
   game.load.spritesheet('ghost', 'assets/boo.png', 52, 40);
 }
 
 function create(){
-  // game.world.setBounds(0,0,685,700);
   game.physics.startSystem(Phaser.Physics.P2JS);
   game.add.sprite(0,0, 'room');
 
-  boy1 = new human('boy', game.world.centerX, game.world.centerY - 200);
-  boy2 = new human('boy', game.world.centerX - 50, game.world.centerY - 250);
+  for(var i=0; i<level; i++){
+      humanArr[i] = new human('boy', game.world.randomX, game.world.randomY);
+  }
 
-  girl1 = new human('girl', game.world.centerX, game.world.centerY - 100);
-  girl2 = new human('girl', game.world.centerX + 50, game.world.centerY - 100);
+  // boy2 = new human('boy', game.world.centerX - 50, game.world.centerY - 250);
+  // girl2 = new human('girl', game.world.centerX + 50, game.world.centerY - 100);
+  // humanArr.push(boy1, boy2, girl1, girl2);
 
   ghostX = 327;
   ghostY = 30;
-
 
   ghost = game.add.sprite(ghostX, ghostY, 'ghost');
   ghost.scale.setTo(0.6,0.6);
@@ -34,8 +36,6 @@ function create(){
   ghost.animations.add('up', [1], 10, true);
   ghost.animations.add('down', [0], 10, true);
   ghost.body.fixedRotation = true;
-  // console.log(boy);
-  console.log(ghost);
 
   hitbox1 = game.add.graphics(100,470);
   hitbox1.drawRect(0,0,200,210);
@@ -89,14 +89,66 @@ function create(){
     game.physics.p2.enable(hitboxArr[i], false);
     hitboxArr[i].body.static = true;
   }
-  this.text = this.add.text(10, 10, "", {size: "12px", fill: (0,0,0), align:"center"});
-  console.log("something");
+  ghostText = this.add.text(game.world.centerX, game.world.centerY, "", {size: "12px", fill: (0,0,0), align:"center"});
+  humanText = this.add.text(game.world.centerX-100, game.world.centerY-100, "", {size: "12px", fill: (0,0,0), align:"center"});
+  scoreText = this.add.text(10, 10, "", {size: "12px", fill: (0,0,0), align:"center"});
+  levelText = this.add.text(10, 40, "", {size: "12px", fill: (0,0,0), align:"center"});
+  scoreText.setText("Score: " + score);
+  levelText.setText("Level: " + level);
+  //losing condition: when ghost is in contact with triangle body shape of human
+  ghost.body.onBeginContact.add(ghostCollision, this);
+
+}
+
+function ghostCollision(body, bodyB, shapeA, shapeB, equation){
+  var humanIndex = -1;
+  for(var i=0; i<humanArr.length; i++){
+    if(body == humanArr[i].sprite.body || bodyB == humanArr[i].sprite.body){
+      humanIndex = i;
+      i=humanArr.length;
+    }
+  }
+  if(humanIndex > -1){//collided with a human
+    if((shapeB.constructor.name == 'Box' && bodyB.parent.sprite.key == 'boy') || (shapeB.constructor.name == 'Box' && bodyB.parent.sprite.key == 'girl')) {
+      ghostText.setText("Boo!");
+      score += 1;
+      scoreText.setText("Score: " + score);
+      humanArr[humanIndex].sprite.kill();
+      humanArr.splice(humanIndex, 1);
+      console.log(humanArr);
+
+      if(humanArr.length == 0){
+        level += 1;
+      }
+    }
+    else if(shapeB.constructor.name == 'Convex'){
+      // humanText.setText("Ahhhhh!");
+
+      if(humanArr[humanIndex].direction == 'up'){
+        humanArr[humanIndex].direction = 'down';
+        humanArr[humanIndex].speed = 50;
+      }
+      else if(humanArr[humanIndex].direction == 'down'){
+        humanArr[humanIndex].direction = 'up';
+        humanArr[humanIndex].speed = 50;
+      }
+      else if(humanArr[humanIndex].direction == 'right'){
+        humanArr[humanIndex].direction = 'left';
+        humanArr[humanIndex].speed = 50;
+      }
+      else if(humanArr[humanIndex].direction == 'left'){
+        humanArr[humanIndex].direction = 'right';
+        humanArr[humanIndex].speed = 50;
+      }
+    }
+  }
 }
 
 function update(){
   ghost.body.velocity.x = 0;
   ghost.body.velocity.y = 0;
 
+  //ghost controls
   cursors = game.input.keyboard.createCursorKeys();
   if (cursors.left.isDown){
     ghost.body.velocity.x = -80;
@@ -118,15 +170,12 @@ function update(){
     ghost.animations.stop();
   }
 
-  boy1.update();
-  boy2.update();
+  //call human update function for each human
+  for(var i=0; i<humanArr.length; i++){
+      humanArr[i].update();
+  }
 
-  girl1.update();
-  girl2.update();
 
-  
-
-  // this.text.setText("Level: \nScore: ");
 
 }
 
