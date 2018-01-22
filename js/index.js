@@ -1,10 +1,11 @@
 var game = new Phaser.Game(685,700, Phaser.AUTO, '', {preload: preload, create:create, update:update, render:render});
 var upBody, downBody, leftBody, rightBody;
-var hitboxArr = [], humanArr = [];
+var hitboxArr = [], humanArr = [], gameTextArr = [];
 var ghostX, ghostY;
-var ghostText, humanText, scoreText, levelText, loseText, winText, countdownText;
+var scoreText, levelText, loseText, winText, countdownText;
 var score = 0, currentLevel=0;
-var timer, timerEvent;
+var timer, timerEvent, loadTimer, loadLevelEvent;
+var loadingLevel = false;
 
 function preload(){
   for (var i = 0; i < levels.length; i++) {
@@ -19,41 +20,38 @@ function create(){
   game.physics.startSystem(Phaser.Physics.P2JS);
   loadLevel(currentLevel);
 
-  // Create a custom timer
-  timer = game.time.create();
-  // Create a delayed event 10s from now
-  timerEvent = timer.add(Phaser.Timer.SECOND * 10, endTimer, this);
-  // Start the timer
-  timer.start();
-
-  ghostX = 350;
-  ghostY = 30;
-
-  ghost = game.add.sprite(ghostX, ghostY, 'ghost');
-  ghost.scale.setTo(0.6,0.6);
-  game.physics.p2.enable(ghost, false);//true means the hitbox is visible
-  ghost.body.immovable = true;
-  ghost.animations.add('left', [2], 10, true);
-  ghost.animations.add('right', [3], 10, true);
-  ghost.animations.add('up', [1], 10, true);
-  ghost.animations.add('down', [0], 10, true);
-  ghost.body.fixedRotation = true;
-
-  ghostText = this.add.text(game.world.centerX, game.world.centerY, "", {size: "12px", fill: (0,0,0), align:"center"});
-  humanText = this.add.text(game.world.centerX-100, game.world.centerY-100, "", {size: "12px", fill: (0,0,0), align:"center"});
-  scoreText = this.add.text(10, 10, "", {size: "12px", fill: (0,0,0), align:"center"});
-  levelText = this.add.text(10, 40, "", {size: "12px", fill: (0,0,0), align:"center"});
-  loseText = this.add.text(200, 200, "", {size: "12px", fill: (0,0,0), align:"center"});
-  winText = this.add.text(200, 200, "", {size: "12px", fill: (0,0,0), align:"center"});
-  countdownText = this.add.text(10, 100, "", {size: "12px", fill: (0,0,0), align:"center"});
+  scoreText = this.add.text(10, 10, "", {size: "10px", fill: (0,0,0), align:"center"});
+  levelText = this.add.text(10, 40, "", {size: "10px", fill: (0,0,0), align:"center"});
+  loseText = this.add.text(game.world.centerX-50, game.world.centerY-100, "", {size: "10px", fill: (0,0,0), align:"center"});
+  winText = this.add.text(200, 200, "", {size: "10px", fill: (0,0,0), align:"center"});
+  countdownText = this.add.text(10, 100, "", {size: "10px", fill: (0,0,0), align:"center"});
+  gameTextArr = [scoreText, scoreText, levelText, loseText, winText, countdownText];
   scoreText.setText("Score: " + score);
-  levelText.setText("Level: " + currentLevel);
-  //losing condition: when ghost is in contact with triangle body shape of human
-  ghost.body.onBeginContact.add(ghostCollision, this);
 }
 
 function endTimer(){
   timer.stop();
+}
+
+//function introduces a small delay before loading the next level (win) or resetting the current level (lose)
+function winLose(win){
+  loadTimer = game.time.create();
+  loadLevelEvent = loadTimer.add(Phaser.Timer.SECOND * 1, ()=>{
+    unloadLevel(currentLevel);
+    if(win){
+      currentLevel++;
+    }
+    score = 0;
+    loadLevel(currentLevel);
+    game.world.bringToTop(ghost);
+    for (let i = 0; i < gameTextArr.length; i++) {
+      game.world.bringToTop(gameTextArr[i]);
+    }
+    loadTimer.destroy();
+    loadingLevel = false;
+  }, this);
+  loadTimer.start();
+  loadingLevel = true;
 }
 
 function ghostCollision(body, bodyB, shapeA, shapeB, equation){
@@ -64,34 +62,30 @@ function ghostCollision(body, bodyB, shapeA, shapeB, equation){
       i=humanArr.length;
     }
   }
-  if(humanIndex > -1){//collided with a human
+  if(humanIndex > -1){//ghost collided with a human
     if((shapeB.constructor.name == 'Box' && bodyB.parent.sprite.key == 'boy') || (shapeB.constructor.name == 'Box' && bodyB.parent.sprite.key == 'girl')) {
-      ghostText.setText("Boo!");
       score += 1;
-      scoreText.setText("Score: " + score);
+
       humanArr[humanIndex].sprite.kill();
       humanArr.splice(humanIndex, 1);
-      console.log(humanArr);
     }
-    else if(shapeB.constructor.name == 'Convex'){//human sees ghost
-
+    else if(shapeB.constructor.name == 'Convex'){//when human sees ghost,he runs in opposite direction
       if(humanArr[humanIndex].direction == 'up'){
         humanArr[humanIndex].direction = 'down';
-        humanArr[humanIndex].speed = 100;
+        humanArr[humanIndex].speed = 140;
       }
       else if(humanArr[humanIndex].direction == 'down'){
         humanArr[humanIndex].direction = 'up';
-        humanArr[humanIndex].speed = 100;
+        humanArr[humanIndex].speed = 140;
       }
       else if(humanArr[humanIndex].direction == 'right'){
         humanArr[humanIndex].direction = 'left';
-        humanArr[humanIndex].speed = 100;
+        humanArr[humanIndex].speed = 140;
       }
       else if(humanArr[humanIndex].direction == 'left'){
         humanArr[humanIndex].direction = 'right';
-        humanArr[humanIndex].speed = 100;
+        humanArr[humanIndex].speed = 140;
       }
-
     }
   }
 }
@@ -103,19 +97,19 @@ function update(){
   //ghost controls
   cursors = game.input.keyboard.createCursorKeys();
   if (cursors.left.isDown){
-    ghost.body.velocity.x = -80;
+    ghost.body.velocity.x = -100;
     ghost.animations.play('left');
   }
   else if (cursors.right.isDown){
-    ghost.body.velocity.x = 80;
+    ghost.body.velocity.x = 100;
     ghost.animations.play('right');
   }
   if (cursors.up.isDown){
-    ghost.body.velocity.y = -80;
+    ghost.body.velocity.y = -100;
     ghost.animations.play('up');
   }
   else if (cursors.down.isDown){
-    ghost.body.velocity.y = 80;
+    ghost.body.velocity.y = 100;
     ghost.animations.play('down');
   }
   else{
@@ -128,39 +122,29 @@ function update(){
   }
 
   //if there is no more humans on screen, load next unload current level first, then load next level
-  if(timer.running && humanArr.length == 0){
-    unloadLevel(currentLevel);
-    // timer.destroy();
-    currentLevel +=1;
-    loadLevel(currentLevel);
-    game.world.bringToTop(ghost);
-    game.world.bringToTop(scoreText);
-    game.world.bringToTop(levelText);
-    game.world.bringToTop(countdownText);
+  if(timer.running && humanArr.length == 0){//winning condition
+    timer.stop();
+    winLose(true);
   }
-  else if(timer.expired && humanArr.length >0){//losing condition
-    unloadLevel(currentLevel);
-    loadLevel(currentLevel);
-    game.world.bringToTop(ghost);
-    game.world.bringToTop(scoreText);
-    game.world.bringToTop(levelText);
-    game.world.bringToTop(countdownText);
+  else if(timer.expired && humanArr.length >0 && !loadingLevel){//losing condition
+    winLose(false);
   }
 }
 
 function render(){
+  levelText.setText("Level: " + (currentLevel+1));
+  scoreText.setText("Score: " + score);
   if (timer.running) {
-    countdownText.setText((timerEvent.delay - timer.ms)/1000);
-    // game.debug.text(((timerEvent.delay - timer.ms)/1000), 10, 100, "#ff0");
-    if(humanArr.length == 0){ //display winning message if timer is still running and there is no more humans
-      console.log("You win!");
-      winText.setText("You reached the next level!");
-    }
+    countdownText.setText("Time left: "+(timerEvent.delay - timer.ms)/1000);
+    // game.debug.text(((timerEvent.delay - timer.ms)/1000), 10, 100, "#000");
   }
   else if(timer.expired && humanArr.length > 0){
-      console.log("You lose!");
-      loseText.setText("You lose!");
-      game.world.bringToTop(loseText);
-      // game.debug.text("Done!", 10, 100, "#0f0");
+    console.log("You lose!");
+    loseText.setText("You lose!");
+    game.world.bringToTop(loseText);
+  }
+  else{
+    console.log("You win!");
+    winText.setText("You reached the next level!");
   }
 }

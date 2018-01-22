@@ -2,7 +2,7 @@ function human(type, humanX, humanY){
   this.type = type;
   this.humanX = humanX;
   this.humanY = humanY;
-  this.speed = 80;
+  this.speed = 110;
   this.direction = 'up';
   this.defaultMTimer = Math.floor(Math.random() * 360) + 60;
   this.movementTimer = this.defaultMTimer;
