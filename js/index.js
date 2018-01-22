@@ -2,8 +2,9 @@ var game = new Phaser.Game(685,700, Phaser.AUTO, '', {preload: preload, create:c
 var upBody, downBody, leftBody, rightBody;
 var hitboxArr = [], humanArr = [];
 var ghostX, ghostY;
-var ghostText, humanText, scoreText, levelText;
+var ghostText, humanText, scoreText, levelText, loseText, winText, countdownText;
 var score = 0, currentLevel=0;
+var timer, timerEvent;
 
 function preload(){
   for (var i = 0; i < levels.length; i++) {
@@ -17,6 +18,13 @@ function preload(){
 function create(){
   game.physics.startSystem(Phaser.Physics.P2JS);
   loadLevel(currentLevel);
+
+  // Create a custom timer
+  timer = game.time.create();
+  // Create a delayed event 10s from now
+  timerEvent = timer.add(Phaser.Timer.SECOND * 10, endTimer, this);
+  // Start the timer
+  timer.start();
 
   ghostX = 350;
   ghostY = 30;
@@ -35,10 +43,17 @@ function create(){
   humanText = this.add.text(game.world.centerX-100, game.world.centerY-100, "", {size: "12px", fill: (0,0,0), align:"center"});
   scoreText = this.add.text(10, 10, "", {size: "12px", fill: (0,0,0), align:"center"});
   levelText = this.add.text(10, 40, "", {size: "12px", fill: (0,0,0), align:"center"});
+  loseText = this.add.text(200, 200, "", {size: "12px", fill: (0,0,0), align:"center"});
+  winText = this.add.text(200, 200, "", {size: "12px", fill: (0,0,0), align:"center"});
+  countdownText = this.add.text(10, 100, "", {size: "12px", fill: (0,0,0), align:"center"});
   scoreText.setText("Score: " + score);
   levelText.setText("Level: " + currentLevel);
   //losing condition: when ghost is in contact with triangle body shape of human
   ghost.body.onBeginContact.add(ghostCollision, this);
+}
+
+function endTimer(){
+  timer.stop();
 }
 
 function ghostCollision(body, bodyB, shapeA, shapeB, equation){
@@ -62,19 +77,19 @@ function ghostCollision(body, bodyB, shapeA, shapeB, equation){
 
       if(humanArr[humanIndex].direction == 'up'){
         humanArr[humanIndex].direction = 'down';
-        humanArr[humanIndex].speed = 60;
+        humanArr[humanIndex].speed = 100;
       }
       else if(humanArr[humanIndex].direction == 'down'){
         humanArr[humanIndex].direction = 'up';
-        humanArr[humanIndex].speed = 60;
+        humanArr[humanIndex].speed = 100;
       }
       else if(humanArr[humanIndex].direction == 'right'){
         humanArr[humanIndex].direction = 'left';
-        humanArr[humanIndex].speed = 60;
+        humanArr[humanIndex].speed = 100;
       }
       else if(humanArr[humanIndex].direction == 'left'){
         humanArr[humanIndex].direction = 'right';
-        humanArr[humanIndex].speed = 60;
+        humanArr[humanIndex].speed = 100;
       }
 
     }
@@ -112,23 +127,40 @@ function update(){
       humanArr[i].update();
   }
 
-  if(humanArr.length == 0){
+  //if there is no more humans on screen, load next unload current level first, then load next level
+  if(timer.running && humanArr.length == 0){
     unloadLevel(currentLevel);
+    // timer.destroy();
     currentLevel +=1;
     loadLevel(currentLevel);
     game.world.bringToTop(ghost);
     game.world.bringToTop(scoreText);
     game.world.bringToTop(levelText);
-    // console.log(currentLevel);
+    game.world.bringToTop(countdownText);
   }
-
+  else if(timer.expired && humanArr.length >0){//losing condition
+    unloadLevel(currentLevel);
+    loadLevel(currentLevel);
+    game.world.bringToTop(ghost);
+    game.world.bringToTop(scoreText);
+    game.world.bringToTop(levelText);
+    game.world.bringToTop(countdownText);
+  }
 }
 
 function render(){
-  // game.debug.reset();
-  // for(var i=0; i<hitboxes.children.length; i++){
-  //   // hitboxes.children[i].body.collides(ghostCollisionGroup);
-  //   game.debug.body(hitboxes.children[i]);
-  // }
-  // game.debug.spriteInfo(ghost);
+  if (timer.running) {
+    countdownText.setText((timerEvent.delay - timer.ms)/1000);
+    // game.debug.text(((timerEvent.delay - timer.ms)/1000), 10, 100, "#ff0");
+    if(humanArr.length == 0){ //display winning message if timer is still running and there is no more humans
+      console.log("You win!");
+      winText.setText("You reached the next level!");
+    }
+  }
+  else if(timer.expired && humanArr.length > 0){
+      console.log("You lose!");
+      loseText.setText("You lose!");
+      game.world.bringToTop(loseText);
+      // game.debug.text("Done!", 10, 100, "#0f0");
+  }
 }

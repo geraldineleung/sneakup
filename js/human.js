@@ -2,9 +2,9 @@ function human(type, humanX, humanY){
   this.type = type;
   this.humanX = humanX;
   this.humanY = humanY;
-  this.speed = 10;
+  this.speed = 80;
   this.direction = 'up';
-  this.defaultMTimer = Math.floor(Math.random() * 420) + 60;
+  this.defaultMTimer = Math.floor(Math.random() * 360) + 60;
   this.movementTimer = this.defaultMTimer;
 
   if(type == 'boy'){
@@ -28,6 +28,7 @@ function human(type, humanX, humanY){
   this.sprite.animations.add('right', [3,7,11,15], 5, true);
   this.sprite.animations.add('up', [2,6,10,14], 5, true);
   this.sprite.animations.add('down', [0,4,8,12], 5, true);
+
 
   this.randomizeDirection = function(){
     var rnd = Math.floor(Math.random() * 4);
