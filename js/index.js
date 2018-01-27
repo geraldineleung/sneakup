@@ -5,7 +5,8 @@ var ghostX, ghostY;
 var scoreText, levelText, loseText, winText, countdownText;
 var score = 0, currentLevel=0;
 var timer, timerEvent, loadTimer, loadLevelEvent;
-var loadingLevel = false;
+var loadingLevel = false,gameover=false;
+var finishText, finalScoreText;
 
 function preload(){
   for (var i = 0; i < levels.length; i++) {
@@ -20,12 +21,12 @@ function create(){
   game.physics.startSystem(Phaser.Physics.P2JS);
   loadLevel(currentLevel);
 
-  scoreText = this.add.text(10, 10, "", {size: "10px", fill: (0,0,0), align:"center"});
-  levelText = this.add.text(10, 40, "", {size: "10px", fill: (0,0,0), align:"center"});
-  loseText = this.add.text(game.world.centerX-50, game.world.centerY-100, "", {size: "10px", fill: (0,0,0), align:"center"});
-  winText = this.add.text(200, 200, "", {size: "10px", fill: (0,0,0), align:"center"});
-  countdownText = this.add.text(10, 100, "", {size: "10px", fill: (0,0,0), align:"center"});
-  gameTextArr = [scoreText, scoreText, levelText, loseText, winText, countdownText];
+  scoreText = this.add.text(15, 20, "", {fontSize: '16px', align:"center"});
+  levelText = this.add.text(15, 50, "", {fontSize: '16px', align:"center"});
+  countdownText = this.add.text(15, 80, "", {fontSize: '16px', align:"center"});
+  loseText = this.add.text(game.world.centerX-45, game.world.centerY-100, "", {fontSize: '20px', align:"center"});
+  winText = this.add.text(game.world.centerX-45, game.world.centerY-100, "", {fontSize: '20px', align:"center"});
+  gameTextArr = [scoreText, levelText, loseText, winText, countdownText];
   scoreText.setText("Score: " + score);
 }
 
@@ -37,15 +38,27 @@ function endTimer(){
 function winLose(win){
   loadTimer = game.time.create();
   loadLevelEvent = loadTimer.add(Phaser.Timer.SECOND * 1, ()=>{
-    unloadLevel(currentLevel);
+    let previousLevel = currentLevel;
     if(win){
       currentLevel++;
     }
-    score = 0;
-    loadLevel(currentLevel);
-    game.world.bringToTop(ghost);
-    for (let i = 0; i < gameTextArr.length; i++) {
-      game.world.bringToTop(gameTextArr[i]);
+    else{
+      score -= humanArr.length * Math.ceil(currentLevel/2);
+      if(score<0){
+        score = 0;
+      }
+    }
+    if(currentLevel < levels.length){
+      unloadLevel(previousLevel);
+      loadLevel(currentLevel);
+      game.world.bringToTop(ghost);
+      for (let i = 0; i < gameTextArr.length; i++) {
+        game.world.bringToTop(gameTextArr[i]);
+      }
+    }
+    else{
+      loadFinish();
+      gameover = true;
     }
     loadTimer.destroy();
     loadingLevel = false;
@@ -54,6 +67,18 @@ function winLose(win){
   loadingLevel = true;
 }
 
+//loads a finish screen with end score
+function loadFinish(){
+  unloadLevel(currentLevel-1);
+  finalScoreText = game.add.text(230, 200, "", {size: "10px", fill: "#FFFFFF", align:"center"});
+  finishText = game.add.text(200, 300, "", {size: "10px", fill: "#FFFFFF", align:"center"});
+  finalScoreText.setText("Your score is " + score);
+  finishText.setText("Thanks for playing!");
+  game.world.bringToTop(finalScoreText);
+  game.world.bringToTop(finishText);
+}
+
+//handling collision between ghost and human
 function ghostCollision(body, bodyB, shapeA, shapeB, equation){
   var humanIndex = -1;
   for(var i=0; i<humanArr.length; i++){
@@ -65,8 +90,8 @@ function ghostCollision(body, bodyB, shapeA, shapeB, equation){
   if(humanIndex > -1){//ghost collided with a human
     if((shapeB.constructor.name == 'Box' && bodyB.parent.sprite.key == 'boy') || (shapeB.constructor.name == 'Box' && bodyB.parent.sprite.key == 'girl')) {
       score += 1;
-
       humanArr[humanIndex].sprite.kill();
+      humanArr[humanIndex].sprite.destroy();
       humanArr.splice(humanIndex, 1);
     }
     else if(shapeB.constructor.name == 'Convex'){//when human sees ghost,he runs in opposite direction
@@ -91,60 +116,68 @@ function ghostCollision(body, bodyB, shapeA, shapeB, equation){
 }
 
 function update(){
-  ghost.body.velocity.x = 0;
-  ghost.body.velocity.y = 0;
-
-  //ghost controls
-  cursors = game.input.keyboard.createCursorKeys();
-  if (cursors.left.isDown){
-    ghost.body.velocity.x = -100;
-    ghost.animations.play('left');
+  if(ghost.body != null){
+    ghost.body.velocity.x = 0;
+    ghost.body.velocity.y = 0;
   }
-  else if (cursors.right.isDown){
-    ghost.body.velocity.x = 100;
-    ghost.animations.play('right');
-  }
-  if (cursors.up.isDown){
-    ghost.body.velocity.y = -100;
-    ghost.animations.play('up');
-  }
-  else if (cursors.down.isDown){
-    ghost.body.velocity.y = 100;
-    ghost.animations.play('down');
-  }
-  else{
-    ghost.animations.stop();
-  }
-
-  //call human update function for each human
   for(var i=0; i<humanArr.length; i++){
-      humanArr[i].update();
+    humanArr[i].sprite.body.velocity.x = 0;
+    humanArr[i].sprite.body.velocity.y = 0;
   }
+  if(!gameover && !loadingLevel){
+    //ghost controls
+    cursors = game.input.keyboard.createCursorKeys();
+    if (cursors.left.isDown){
+      ghost.body.velocity.x = -120;
+      ghost.animations.play('left');
+    }
+    else if (cursors.right.isDown){
+      ghost.body.velocity.x = 120;
+      ghost.animations.play('right');
+    }
+    if (cursors.up.isDown){
+      ghost.body.velocity.y = -120;
+      ghost.animations.play('up');
+    }
+    else if (cursors.down.isDown){
+      ghost.body.velocity.y = 120;
+      ghost.animations.play('down');
+    }
+    else{
+      ghost.animations.stop();
+    }
 
-  //if there is no more humans on screen, load next unload current level first, then load next level
-  if(timer.running && humanArr.length == 0){//winning condition
-    timer.stop();
-    winLose(true);
-  }
-  else if(timer.expired && humanArr.length >0 && !loadingLevel){//losing condition
-    winLose(false);
+    //call human update function for each human
+    for(var i=0; i<humanArr.length; i++){
+      humanArr[i].update();
+    }
+
+    //if there is no more humans on screen, unload current level first, then load next level
+    if(!loadingLevel){
+      if(humanArr.length == 0){//winning condition
+        timer.stop();
+        winLose(true);
+      }
+      else if(timer.expired && humanArr.length >0){//losing condition
+        winLose(false);
+      }
+    }
   }
 }
 
 function render(){
-  levelText.setText("Level: " + (currentLevel+1));
-  scoreText.setText("Score: " + score);
+  if(!gameover){
+    levelText.setText("Level: " + (currentLevel+1));
+    scoreText.setText("Score: " + score);
+  }
   if (timer.running) {
     countdownText.setText("Time left: "+(timerEvent.delay - timer.ms)/1000);
-    // game.debug.text(((timerEvent.delay - timer.ms)/1000), 10, 100, "#000");
   }
   else if(timer.expired && humanArr.length > 0){
-    console.log("You lose!");
     loseText.setText("You lose!");
     game.world.bringToTop(loseText);
   }
   else{
-    console.log("You win!");
-    winText.setText("You reached the next level!");
+    winText.setText("You win!");
   }
 }
